@@ -11,9 +11,11 @@ def sync_trigger(Pin):
     
 def increment_seq_count(sync_count, rate, seq_count, sequence):
     """
+    Increment the sequence position counter based on the rate.
+    When the number of sunc signals equals a multiple of the rate,
+    increment the sequence position index
     """
     if sync_count % rate == 0:
-        #sync_count = 0
         seq_count += 1
         if seq_count >= len(sequence):
             seq_count = 0
@@ -28,22 +30,18 @@ def set_play(sync_count, rate, play):
     return play    
     
             
-def play_sample(play, channel, sequence, seq_count):
+def play_sample(play, channel, sequence, seq_count, vol):
             
     if play:
+        pg.mixer.Channel(channel).set_volume(vol)
         pg.mixer.Channel(channel).play(sequence[seq_count])
         play = False
     
 #some initialisation
 pg.mixer.init()
 
-sync_count = 0 #the current value of the sync trigger counter
-last_sync_count = 0
-#read the incoming sync trigger voltage and increment the sync counter
-sync_in_pin = 2
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(sync_in_pin, GPIO.IN)
-GPIO.add_event_detect(sync_in_pin, GPIO.FALLING, callback=sync_trigger)
+
+
 
 #samples and sequences
 sample_1 = pg.mixer.Sound("wi-piano-1.wav")
@@ -51,47 +49,51 @@ sample_2 = pg.mixer.Sound("wi-piano-2.wav")
 sample_3 = pg.mixer.Sound("ac-guitar-new-1.wav")
 sample_4 = pg.mixer.Sound("ac-guitar-new-2.wav")
 
-rate_1 = 8
-seq_count_1 = 0
-play_1 = True
 sequence_1  = []
 sequence_1.append(sample_1)
 sequence_1.append(sample_2)
-
-rate_2 = 8 
-seq_count_2 = 0 
-play_2 = True
 
 sequence_2  = []
 sequence_2.append(sample_3)
 sequence_2.append(sample_4)
 
-while True:
+
+#choose an external sync signal (true) or use the internal one (false)
+sync_in = False
+internal_rate = 0.125
+
+sync_count = 0 #the current value of the sync trigger counter
+last_sync_count = 0
+#read the incoming sync trigger voltage and increment the sync counter
+sync_in_pin = 2
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(sync_in_pin, GPIO.IN)
+if sync_in:
+    GPIO.add_event_detect(sync_in_pin, GPIO.FALLING, callback=sync_trigger)
+
+
+sequences = [sequence_1,sequence_2] #the list of sequences (max 8)
+rates = [25,25] #length of each sequence to play
+plays = [True,True] #triggers for whether to play the sequence on the nexst step or not
+seq_counts = [0,0] #a counter to keep track of which sample to play in each sequence
+play_seqs = [True,True] #whether to play the sequence or not
+vols = [1.0,0.2]
+
+while True: # main program loop
     
+    #update sync count
     if sync_count != last_sync_count:
         last_sync_count = sync_count
         
-        print(sync_count, seq_count_1)
-        
-        seq_count_1 = increment_seq_count(sync_count, rate_1, seq_count_1, sequence_1)
-        play_1 = set_play(sync_count, rate_1, play_1)
-        play_sample(play_1, 1, sequence_1, seq_count_1)
-        
-        seq_count_2 = increment_seq_count(sync_count, rate_2, seq_count_2, sequence_2)
-        play_2 = set_play(sync_count, rate_2, play_2)
-        play_sample(play_2, 2, sequence_2, seq_count_2)
-# 
-#         if sync_count % rate_1 == 0:
-#             #sync_count = 0
-#             seq_count_1 += 1
-#             play_1 = True
-#             
-#             if seq_count_1 >= len(sequence_1):
-#                 seq_count_1 = 0
-#                 
-#         if play_1:
-#             pg.mixer.Channel(1).play(sequence_1[seq_count_1])
-#             play_1 = False
+        for i in range(0,len(sequences)):
+            if play_seqs[i]:
+                seq_counts[i] = increment_seq_count(sync_count, rates[i], seq_counts[i], sequences[i]) #increment each sequences sample counter
+                plays[i] = set_play(sync_count, rates[i], plays[i]) # set whether to play the sequence at this loop step or not
+                play_sample(plays[i], i, sequences[i], seq_counts[i], vols[i]) # play the sample (or not) at this loop step
+                
 
+    if sync_in == False:#internal clock
+        sync_count += 1
+        time.sleep(internal_rate)
 
 
