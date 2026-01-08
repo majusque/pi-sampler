@@ -34,12 +34,18 @@ def set_play(sync_count, rate, play):
     
             
 def play_sample(play, channel, sequence, seq_count, vol):
-            
-    if play:
-        if sequence[seq_count] != "":
-            pg.mixer.Channel(channel).set_volume(vol)
-            pg.mixer.Channel(channel).play(sequence[seq_count])
-        play = False
+    if play_all:        
+        if play:
+            if sequence[seq_count] != "":
+                pg.mixer.Channel(channel).set_volume(vol)
+                pg.mixer.Channel(channel).play(sequence[seq_count])
+            play = False
+        
+def button_callback(channel):
+    global play_all
+    play_all = not play_all
+    print(play_all)
+
     
 #some initialisation
 pg.mixer.init()
@@ -65,8 +71,8 @@ sequence_1.append(sample_2)
 
 sequence_2  = []
 sequence_2.append(sample_3)
-#sequence_2.append(sample_4)
-sequence_2.append("")
+sequence_2.append(sample_4)
+#sequence_2.append("")
 
 
 #choose an external sync signal (true) or use the internal one (false)
@@ -82,6 +88,9 @@ GPIO.setup(sync_in_pin, GPIO.IN)
 if sync_in:
     GPIO.add_event_detect(sync_in_pin, GPIO.FALLING, callback=sync_trigger)
 
+#play all button
+GPIO.setup(14, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.add_event_detect(14,GPIO.RISING,callback=button_callback, bouncetime=250)
 
 sequences = [sequence_1,sequence_2] #the list of sequences (max 8)
 rates = [25,25] #length of each sequence to play
@@ -89,6 +98,9 @@ plays = [True,True] #triggers for whether to play the sequence on the nexst step
 seq_counts = [0,0] #a counter to keep track of which sample to play in each sequence
 play_seqs = [True,True] #whether to play the sequence or not
 vols = [1.0,0.8]
+
+global play_all
+play_all = False
 
 while True: # main program loop
     
