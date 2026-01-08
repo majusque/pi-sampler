@@ -1,6 +1,9 @@
 import pygame as pg
 import time
 import RPi.GPIO as GPIO
+from luma.core.interface.serial import i2c
+from luma.core.render import canvas
+from luma.oled.device import ssd1306, ssd1325, ssd1331, sh1106
 
 def sync_trigger(Pin):
     """
@@ -33,14 +36,21 @@ def set_play(sync_count, rate, play):
 def play_sample(play, channel, sequence, seq_count, vol):
             
     if play:
-        pg.mixer.Channel(channel).set_volume(vol)
-        pg.mixer.Channel(channel).play(sequence[seq_count])
+        if sequence[seq_count] != "":
+            pg.mixer.Channel(channel).set_volume(vol)
+            pg.mixer.Channel(channel).play(sequence[seq_count])
         play = False
     
 #some initialisation
 pg.mixer.init()
+#display
+serial = i2c(port=1, address=0x3C)
+device = ssd1306(serial, rotate=0)
 
-
+with canvas(device) as draw:
+    draw.text((10, 0), "SpAmpLer", fill="white")
+    draw.text((10, 30), "EgJam Ind. 2025", fill="white")
+time.sleep(3)
 
 
 #samples and sequences
@@ -55,7 +65,8 @@ sequence_1.append(sample_2)
 
 sequence_2  = []
 sequence_2.append(sample_3)
-sequence_2.append(sample_4)
+#sequence_2.append(sample_4)
+sequence_2.append("")
 
 
 #choose an external sync signal (true) or use the internal one (false)
@@ -65,7 +76,7 @@ internal_rate = 0.125
 sync_count = 0 #the current value of the sync trigger counter
 last_sync_count = 0
 #read the incoming sync trigger voltage and increment the sync counter
-sync_in_pin = 2
+sync_in_pin = 21
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(sync_in_pin, GPIO.IN)
 if sync_in:
@@ -77,7 +88,7 @@ rates = [25,25] #length of each sequence to play
 plays = [True,True] #triggers for whether to play the sequence on the nexst step or not
 seq_counts = [0,0] #a counter to keep track of which sample to play in each sequence
 play_seqs = [True,True] #whether to play the sequence or not
-vols = [1.0,0.2]
+vols = [1.0,0.8]
 
 while True: # main program loop
     
