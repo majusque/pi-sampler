@@ -60,7 +60,7 @@ serial = i2c(port=1, address=0x3C)
 device = ssd1306(serial, rotate=0)
 
 with canvas(device) as draw:
-    draw.text((10, 0), "SpAmpLer", fill="white")
+    draw.text((10, 0), "SpAmpLyEr...", fill="white")
     draw.text((10, 30), "EgJam Ind. 2025", fill="white")
 time.sleep(3)
 
