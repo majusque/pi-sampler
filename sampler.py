@@ -1,9 +1,9 @@
 import pygame as pg
 import time
 import RPi.GPIO as GPIO
-from luma.core.interface.serial import i2c
-from luma.core.render import canvas
-from luma.oled.device import ssd1306, ssd1325, ssd1331, sh1106
+import serial
+import sys
+import json
 
 def sync_trigger(Pin):
     """
@@ -42,7 +42,7 @@ def play_sample(play, channel, sequence, seq_count, vol):
             play = False
 
 
-def button_callback(channel):
+def play_all_button_callback(channel):
     global sync_count
     sync_count = 0
     global seq_counts
@@ -50,20 +50,15 @@ def button_callback(channel):
         seq_counts[i] = 0
     global play_all
     play_all = not play_all
-    print(play_all)
+    print("play_all: " + str(play_all))
+    
+def select_button_callback(channel):
+    print("select")
     
 
     
 #some initialisation
 pg.mixer.init()
-#display
-# serial = i2c(port=1, address=0x3C)
-# device = ssd1306(serial, rotate=0)
-
-# with canvas(device) as draw:
-#     draw.text((10, 0), "SpAmpLyEr...", fill="white")
-#     draw.text((10, 30), "EgJam Ind. 2025", fill="white")
-# time.sleep(3)
 
 global sequences
 sequences = []
@@ -78,6 +73,8 @@ sample_6 = pg.mixer.Sound("bass.wav")
 sample_7 = pg.mixer.Sound("hi-hats.wav")
 sample_8 = pg.mixer.Sound("ooh.wav")
 sample_9 = pg.mixer.Sound("wi-yeah.wav")
+sample_10 = pg.mixer.Sound("wi-fish.wav")
+sample_11 = pg.mixer.Sound("wi-2-guitar-1.wav")
 
 sequence_1  = []
 sequence_1.append([sample_2, 0])
@@ -106,6 +103,7 @@ sequences.append(sequence_5)
 
 
 sequence_6 = []
+sequence_6.append([sample_10, 6])
 sequence_6.append([sample_8, 6])
 sequence_6.append(["", 0])
 sequence_6.append([sample_9, 9])
@@ -126,8 +124,13 @@ if sync_in:
     GPIO.add_event_detect(sync_in_pin, GPIO.FALLING, callback=sync_trigger)
 
 #play all button
-GPIO.setup(14, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.add_event_detect(14,GPIO.RISING,callback=button_callback, bouncetime=500)
+play_all_pin = 26
+GPIO.setup(play_all_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.add_event_detect(play_all_pin,GPIO.RISING,callback=play_all_button_callback, bouncetime=500)
+#select button
+select_pin = 19
+GPIO.setup(select_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.add_event_detect(select_pin,GPIO.RISING,callback=select_button_callback, bouncetime=500)
 
 #the list of sequences (max 8)
 global plays
@@ -136,7 +139,7 @@ global seq_counts
 seq_counts = [0]*len(sequences)
 global play_seqs
 play_seqs = [True]*len(sequences)
-vols = [0.8,0.8,1.0,1.0,0.8,1.0]
+vols = [0.8,0.8,1.0,0.0,0.8,1.0]
 rates = [25,25,50,50,50,50] #length of each sequence to play
 
 global play_all
@@ -154,7 +157,7 @@ while True: # main program loop
                 seq_counts[i] = increment_seq_count(sync_count, rates[i], seq_counts[i], sequences[i]) #increment each sequences sample counter
                 plays[i] = set_play(sync_count, rates[i], plays[i], sequences[i], seq_counts[i]) # set whether to play the sequence at this loop step or not
                 play_sample(plays[i], i, sequences[i], seq_counts[i], vols[i]) # play the sample (or not) at this loop step
-                
+            
 
     if sync_in == False:#internal clock
         sync_count += 1
