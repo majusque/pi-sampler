@@ -7,6 +7,12 @@ import json
 
 global mode_idx
 mode_idx = 0
+global samples_idx
+samples_idx = 0
+global sequence_idx
+sequence_idx = 0
+global play_mode_idx
+play_mode_idx = 0
 
 
 def sync_trigger(Pin):
@@ -30,7 +36,7 @@ def increment_seq_count(sync_count, rate, seq_count, sequence):
 
 
 def set_play(sync_count, rate, play, sequence, seq_count):
-    delay = sequence[seq_count][1]
+    delay = sequence[seq_count]["delay"]
     play = False
     if (sync_count - delay) % rate == 0:
         play = True
@@ -40,9 +46,11 @@ def set_play(sync_count, rate, play, sequence, seq_count):
 def play_sample(play, channel, sequence, seq_count, vol):
     if play_all:        
         if play:
-            if sequence[seq_count][0] != "":
+            if sequence[seq_count]["file"] != "":
+                sound = pg.mixer.Sound(sequence[seq_count]["file"])
+                sound.set_volume(sequence[seq_count]["volume"])
                 pg.mixer.Channel(channel).set_volume(vol)
-                pg.mixer.Channel(channel).play(sequence[seq_count][0])
+                pg.mixer.Channel(channel).play(sound)
             play = False
 
 
@@ -56,7 +64,7 @@ def play_all_button_callback(channel):
     play_all = not play_all
     print("play_all: " + str(play_all))
     
-def select_button_callback(channel):
+def mode_button_callback(channel):
     global mode_idx
     if mode_idx >= len(modes) - 1:
         mode_idx = 0
@@ -64,20 +72,33 @@ def select_button_callback(channel):
         mode_idx += 1
     print(modes[mode_idx])
     
+def select_button_callback(channel):
+    print("select")
+    
 def up_button_callback(channel):
-    if mode_idx == 0:
+    global samples_idx
+    if mode_idx == 0:#play mode
         print("this thing +")
-    elif mode_idx == 1:
-        print("that thing +")
-    elif mode_idx == 2:
+    elif mode_idx == 1:# edit sample mode
+        if samples_idx >= len(samples) - 1:
+            samples_idx = 0
+        else:
+            samples_idx += 1
+        print(samples_idx)
+    elif mode_idx == 2:# edit sequence mode
         print("the other thing +")
 
 def down_button_callback(channel):
-    if mode_idx == 0:
+    global samples_idx
+    if mode_idx == 0:#play mode
         print("this thing -")
-    elif mode_idx == 1:
-        print("that thing -")
-    elif mode_idx == 2:
+    elif mode_idx == 1:# edit sample mode
+        if samples_idx <= 0:
+            samples_idx = 0
+        else:
+            samples_idx -= 1
+        print(samples_idx)
+    elif mode_idx == 2:# edit sequence mode
         print("the other thing -")
     
 #some initialisation
@@ -85,52 +106,35 @@ pg.mixer.init()
 
 global sequences
 sequences = []
+global samples
+samples = []
 
 #samples and sequences
-sample_1 = pg.mixer.Sound("wi-piano-1.wav")
-sample_2 = pg.mixer.Sound("wi-piano-2.wav")
-sample_3 = pg.mixer.Sound("ac-guitar-new-1.wav")
-sample_4 = pg.mixer.Sound("ac-guitar-new-2.wav")
-sample_5 = pg.mixer.Sound("drums.wav")
-sample_6 = pg.mixer.Sound("bass.wav")
-sample_7 = pg.mixer.Sound("hi-hats.wav")
-sample_8 = pg.mixer.Sound("ooh.wav")
-sample_9 = pg.mixer.Sound("wi-yeah.wav")
-sample_10 = pg.mixer.Sound("wi-fish.wav")
-sample_11 = pg.mixer.Sound("wi-2-guitar-1.wav")
+sample_paths = []
+sample_paths.append("wi-piano-1.wav")
+sample_paths.append("wi-piano-2.wav")
+sample_paths.append("ac-guitar-new-1.wav")
+sample_paths.append("ac-guitar-new-2.wav")
+sample_paths.append("drums.wav")
+sample_paths.append("bass.wav")
+sample_paths.append("hi-hats.wav")
+sample_paths.append("ooh.wav")
+sample_paths.append("wi-yeah.wav")
+sample_paths.append("wi-fish.wav")
+sample_paths.append("wi-2-guitar-1.wav")
 
-sequence_1  = []
-sequence_1.append([sample_2, 0])
-sequence_1.append([sample_1, 0])
+for p in sample_paths:
+    sample = {}
+    sample["file"] = p
+    sample["delay"] = 0
+    sample["volume"] = 1.0
+    samples.append(sample)
+
+
+sequence_1 = []
+sequence_1.append(samples[4])
+
 sequences.append(sequence_1)
-
-sequence_2  = []
-sequence_2.append([sample_4, 0])
-sequence_2.append([sample_3, 0])
-#sequence_2.append("")
-sequences.append(sequence_2)
-
-sequence_3 = []
-sequence_3.append([sample_5, 0])
-sequences.append(sequence_3)
-
-
-sequence_4 = []
-sequence_4.append([sample_6, 0])
-sequences.append(sequence_4)
-
-
-sequence_5 = []
-sequence_5.append([sample_7, 0])
-sequences.append(sequence_5)
-
-
-sequence_6 = []
-sequence_6.append([sample_10, 6])
-sequence_6.append([sample_8, 6])
-sequence_6.append(["", 0])
-sequence_6.append([sample_9, 9])
-sequences.append(sequence_6)
 
 
 #choose an external sync signal (true) or use the internal one (false)
@@ -151,9 +155,9 @@ play_all_pin = 26
 GPIO.setup(play_all_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.add_event_detect(play_all_pin,GPIO.RISING,callback=play_all_button_callback, bouncetime=500)
 #select button
-select_pin = 19
-GPIO.setup(select_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-GPIO.add_event_detect(select_pin,GPIO.RISING,callback=select_button_callback, bouncetime=500)
+mode_pin = 19
+GPIO.setup(mode_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.add_event_detect(mode_pin,GPIO.RISING,callback=mode_button_callback, bouncetime=500)
 #up button
 up_pin = 13
 GPIO.setup(up_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
@@ -162,6 +166,10 @@ GPIO.add_event_detect(up_pin,GPIO.RISING,callback=up_button_callback, bouncetime
 down_pin = 6
 GPIO.setup(down_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.add_event_detect(down_pin,GPIO.RISING,callback=down_button_callback, bouncetime=500)
+#select button
+select_pin = 5
+GPIO.setup(select_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.add_event_detect(select_pin,GPIO.RISING,callback=select_button_callback, bouncetime=500)
 
 #the list of sequences (max 8)
 global plays
