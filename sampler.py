@@ -5,6 +5,10 @@ import serial
 import sys
 import json
 
+global mode_idx
+mode_idx = 0
+
+
 def sync_trigger(Pin):
     """
     Function triggered by sync-in voltage
@@ -53,9 +57,28 @@ def play_all_button_callback(channel):
     print("play_all: " + str(play_all))
     
 def select_button_callback(channel):
-    print("select")
+    global mode_idx
+    if mode_idx >= len(modes) - 1:
+        mode_idx = 0
+    else:
+        mode_idx += 1
+    print(modes[mode_idx])
     
+def up_button_callback(channel):
+    if mode_idx == 0:
+        print("this thing +")
+    elif mode_idx == 1:
+        print("that thing +")
+    elif mode_idx == 2:
+        print("the other thing +")
 
+def down_button_callback(channel):
+    if mode_idx == 0:
+        print("this thing -")
+    elif mode_idx == 1:
+        print("that thing -")
+    elif mode_idx == 2:
+        print("the other thing -")
     
 #some initialisation
 pg.mixer.init()
@@ -131,6 +154,14 @@ GPIO.add_event_detect(play_all_pin,GPIO.RISING,callback=play_all_button_callback
 select_pin = 19
 GPIO.setup(select_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.add_event_detect(select_pin,GPIO.RISING,callback=select_button_callback, bouncetime=500)
+#up button
+up_pin = 13
+GPIO.setup(up_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.add_event_detect(up_pin,GPIO.RISING,callback=up_button_callback, bouncetime=500)
+#down button
+down_pin = 6
+GPIO.setup(down_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.add_event_detect(down_pin,GPIO.RISING,callback=down_button_callback, bouncetime=500)
 
 #the list of sequences (max 8)
 global plays
@@ -145,6 +176,9 @@ rates = [25,25,50,50,50,50] #length of each sequence to play
 global play_all
 play_all = False
 play_refresh = int(1.0/0.123)
+
+global modes
+modes = ["play", "edit_sample", "edit_sequence"]
 
 while True: # main program loop
     
