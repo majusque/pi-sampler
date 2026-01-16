@@ -13,6 +13,9 @@ global sequence_idx
 sequence_idx = 0
 global play_mode_idx
 play_mode_idx = 0
+global select
+select = False
+
 
 
 def sync_trigger(Pin):
@@ -22,21 +25,21 @@ def sync_trigger(Pin):
     global sync_count
     sync_count += 1
     
-def increment_seq_count(sync_count, rate, seq_count, sequence):
+def increment_seq_count(sync_count, sequence):
     """
     Increment the sequence position counter based on the rate.
-    When the number of sunc signals equals a multiple of the rate,
+    When the number of sync signals equals a multiple of the rate,
     increment the sequence position index
     """
-    if sync_count % rate == 0:
-        seq_count += 1
-        if seq_count >= len(sequence):
-            seq_count = 0
-    return seq_count
+    if sync_count % sequence.length == 0:
+        sequence.seq_count += 1
+        if sequence.seq_count >= len(sequence.slots):
+            sequence.seq_count = 0
+    #return seq_count
 
 
 def set_play(sync_count, rate, play, sequence, seq_count):
-    delay = sequence[seq_count]["delay"]
+    delay = sequence.slots[seq_count].delay
     play = False
     if (sync_count - delay) % rate == 0:
         play = True
@@ -73,7 +76,8 @@ def mode_button_callback(channel):
     print(modes[mode_idx])
     
 def select_button_callback(channel):
-    print("select")
+    global select
+    select = True
     
 def up_button_callback(channel):
     global samples_idx
@@ -84,7 +88,7 @@ def up_button_callback(channel):
             samples_idx = 0
         else:
             samples_idx += 1
-        print(samples_idx)
+        print(samples[samples_idx])
     elif mode_idx == 2:# edit sequence mode
         print("the other thing +")
 
@@ -97,10 +101,53 @@ def down_button_callback(channel):
             samples_idx = 0
         else:
             samples_idx -= 1
-        print(samples_idx)
+        print(samples[samples_idx])
     elif mode_idx == 2:# edit sequence mode
         print("the other thing -")
+        
+class Sequence():
     
+    def __init__(self):
+        self._slots = []
+        
+
+        
+        
+
+class Slot():
+    
+    def __init__(self, sample, length, delay, volume):
+        self._sample = sample
+        self._delay = delay
+        self._volume = volume
+
+    def __str__(self):
+        return f"sample: {self._sample}, delay: {self._delay}, volume: {self._volume}"
+    
+    @property
+    def sample(self):
+        return self._sample
+    
+    @sample.setter
+    def sample(self, value):
+        self._sample = value
+        
+    @property
+    def delay(self):
+        return self._delay
+    
+    @delay.setter
+    def delay(self, value):
+        self._delay = value
+        
+    @property
+    def volume(self):
+        return self._volume
+    
+    @volume.setter
+    def volume(self, value):
+        self._volume = value
+            
 #some initialisation
 pg.mixer.init()
 
@@ -131,9 +178,12 @@ for p in sample_paths:
     samples.append(sample)
 
 
-sequence_1 = []
-sequence_1.append(samples[4])
-
+sequence_1 = Sequence(True, 0, True, 1.0, 50)
+slot_1_1 = Slot(samples[4], 0, 1.0)
+slots_1 = []
+slots_1.append(slot_1_1)
+sequence_1.slots = slots_1
+print(sequence_1)
 sequences.append(sequence_1)
 
 
@@ -172,14 +222,14 @@ GPIO.setup(select_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.add_event_detect(select_pin,GPIO.RISING,callback=select_button_callback, bouncetime=500)
 
 #the list of sequences (max 8)
-global plays
-plays = [True]*len(sequences)
-global seq_counts
-seq_counts = [0]*len(sequences)
-global play_seqs
-play_seqs = [True]*len(sequences)
-vols = [0.8,0.8,1.0,0.0,0.8,1.0]
-rates = [25,25,50,50,50,50] #length of each sequence to play
+# global plays
+# plays = [True]*len(sequences)
+# global seq_counts
+# seq_counts = [0]*len(sequences)
+# global play_seqs
+# play_seqs = [True]*len(sequences)
+# vols = [0.8,0.8,1.0,0.0,0.8,1.0]
+# rates = [25,25,50,50,50,50] #length of each sequence to play
 
 global play_all
 play_all = False
@@ -195,10 +245,11 @@ while True: # main program loop
         last_sync_count = sync_count
         
         for i in range(0,len(sequences)):
-            if play_seqs[i]:
-                seq_counts[i] = increment_seq_count(sync_count, rates[i], seq_counts[i], sequences[i]) #increment each sequences sample counter
-                plays[i] = set_play(sync_count, rates[i], plays[i], sequences[i], seq_counts[i]) # set whether to play the sequence at this loop step or not
-                play_sample(plays[i], i, sequences[i], seq_counts[i], vols[i]) # play the sample (or not) at this loop step
+            sequences[i].play(sync_count)
+#             if sequences[i].play_seq:
+#                 increment_seq_count(sync_count, sequences[i]) #increment each sequences sample counter
+#                 plays[i] = set_play(sync_count, rates[i], plays[i], sequences[i], seq_counts[i]) # set whether to play the sequence at this loop step or not
+#                 play_sample(plays[i], i, sequences[i], seq_counts[i], vols[i]) # play the sample (or not) at this loop step
             
 
     if sync_in == False:#internal clock
