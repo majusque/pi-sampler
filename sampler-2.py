@@ -12,7 +12,8 @@ samples = []
 
 def sync_trigger(Pin):
     """
-    Function triggered by sync-in voltage
+    Function triggered by sync-in voltage,
+    increments the sync counter
     """
     global sync_count
     sync_count += 1
@@ -35,7 +36,7 @@ class Sequence():
             self._slot = self._slots[self._slot_idx]
 
         if sync_count - self._last_sync_count == self._slot.length or sync_count - self._last_sync_count == 0:
-            
+                        
             print("play", sync_count, self._last_sync_count, self._slot.length, self._slot_idx, self._slot.sample)
             
             sound = pg.mixer.Sound(self._slot.sample)
@@ -121,13 +122,21 @@ sample_paths.append("wi-yeah.wav")
 sample_paths.append("wi-fish.wav")
 sample_paths.append("wi-2-guitar-1.wav")
 
-slot_1 = Slot("drums.wav", 50, 0, 1.0)
-slot_2 = Slot("wi-piano-1.wav", 25, 0, 1.0)
-slot_3 = Slot("ac-guitar-new-1.wav", 10, 0, 1.0)
+slot_1_1 = Slot("drums.wav", 50, 0, 1.0)
 sequence_1 = Sequence()
-sequence_1.slots = [slot_1, slot_2, slot_3]
+sequence_1.slots = [slot_1_1]
 sequences.append(sequence_1)
 
+slot_2_1 = Slot("wi-piano-1.wav", 25, 0, 1.0)
+slot_2_2 = Slot("wi-piano-2.wav", 25, 0, 1.0)
+sequence_2 = Sequence()
+sequence_2.slots = [slot_2_1, slot_2_2]
+sequences.append(sequence_2)
+
+slot_3_1 = Slot("ooh.wav", 50, 6, 1.0)
+sequence_3 = Sequence()
+sequence_3.slots = [slot_3_1]
+sequences.append(sequence_3)
 
 #choose an external sync signal (true) or use the internal one (false)
 sync_in = False
