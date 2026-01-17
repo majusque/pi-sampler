@@ -30,30 +30,31 @@ class Sequence():
         
     def play(self, sync_count, channel):
 
-        if self._called == False:
-            self._last_sync_count = sync_count
-            self._called = True
-            self._slot = self._slots[self._slot_idx]
-
-        if sync_count - (self._last_sync_count + self._slot.delay) == self._slot.length or sync_count - (self._last_sync_count + self._slot.delay) == 0:
-            
-            if self._slot.sample is not "":
-                print("play", sync_count, self._last_sync_count, self._slot.length, self._slot.delay, self._slot_idx, self._slot.sample)
-                
-                sound = pg.mixer.Sound(self._slot.sample)
-                sound.set_volume(self._slot.volume)
-                pg.mixer.Channel(channel).set_volume(self._volume)
-                pg.mixer.Channel(channel).play(sound)
-            
-        if sync_count - self._last_sync_count == self._slot.length - 1:
-                if self._slot_idx >= len(self._slots) - 1:
-                    self._slot_idx = 0
-                else:
-                    self._slot_idx += 1
-                        
+        if play_all:
+            if self._called == False:
+                self._last_sync_count = sync_count
+                self._called = True
                 self._slot = self._slots[self._slot_idx]
+
+            if sync_count - (self._last_sync_count + self._slot.delay) == self._slot.length or sync_count - (self._last_sync_count + self._slot.delay) == 0:
                 
-                self._last_sync_count = sync_count + 1
+                if self._slot.sample is not "":
+                    print("play", sync_count, self._last_sync_count, self._slot.length, self._slot.delay, self._slot_idx, self._slot.sample)
+                    
+                    sound = pg.mixer.Sound(self._slot.sample)
+                    sound.set_volume(self._slot.volume)
+                    pg.mixer.Channel(channel).set_volume(self._volume)
+                    pg.mixer.Channel(channel).play(sound)
+                
+            if sync_count - self._last_sync_count == self._slot.length - 1:
+                    if self._slot_idx >= len(self._slots) - 1:
+                        self._slot_idx = 0
+                    else:
+                        self._slot_idx += 1
+                            
+                    self._slot = self._slots[self._slot_idx]
+                    
+                    self._last_sync_count = sync_count + 1
 
 
         
@@ -67,6 +68,15 @@ class Sequence():
         
     def set_slot(self, index, value):
         self._slots[index] = value
+        
+    @property
+    def slot_idx(self):
+        return self._slot_idx
+    
+    @slot_idx.setter
+    def slot_idx(self, value):
+        self._slot_idx = value
+    
         
 class Slot():
     
@@ -108,6 +118,15 @@ class Slot():
     def length(self, value):
         self._length = value
 
+
+def play_all_button_callback(channel):
+    global sync_count
+    sync_count = 0
+    for sequence in sequences:
+        sequence.slot_idx = 0
+    global play_all
+    play_all = not play_all
+    print("play_all: " + str(play_all))
 
 #samples and sequences
 sample_paths = []
@@ -166,12 +185,21 @@ sequences.append(sequence_7)
 sync_in = False
 internal_rate = 0.123
 
+global play_all
+play_all = False
+
 sync_count = 0 #the current value of the sync trigger counter
 last_sync_count = 0
 #read the incoming sync trigger voltage and increment the sync counter
 sync_in_pin = 21
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(sync_in_pin, GPIO.IN)
+
+#play all button
+play_all_pin = 26
+GPIO.setup(play_all_pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.add_event_detect(play_all_pin,GPIO.RISING,callback=play_all_button_callback, bouncetime=500)
+
 if sync_in:
     GPIO.add_event_detect(sync_in_pin, GPIO.FALLING, callback=sync_trigger)
     
