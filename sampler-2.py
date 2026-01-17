@@ -142,6 +142,24 @@ def play_all_button_callback(channel):
     global play_all
     play_all = not play_all
     print("play_all: " + str(play_all))
+    
+#rotary encoder functions
+def PIN_A_callback(channel):
+    global dirstr
+    dirstr += "A"
+    
+def PIN_B_callback(channel):
+    global dirstr
+    dirstr += "B"
+
+
+def rotary_count(dirstr):
+    if dirstr == "AB":
+        return -1
+    elif dirstr == "BA":
+        return 1
+    else:
+        return 0
 
 #samples and sequences
 sample_paths = []
@@ -217,10 +235,36 @@ GPIO.add_event_detect(play_all_pin,GPIO.RISING,callback=play_all_button_callback
 
 if sync_in:
     GPIO.add_event_detect(sync_in_pin, GPIO.FALLING, callback=sync_trigger)
-    
-    
+
+#rotary encoder inputs
+PIN_A = 14 # Pin 8 
+PIN_B = 15 # Pin 10
+BUTTON = 4 # Pin 7
+
+
+GPIO.setup(PIN_A, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.add_event_detect(PIN_A,GPIO.RISING,callback=PIN_A_callback, bouncetime=100)
+
+GPIO.setup(PIN_B, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.add_event_detect(PIN_B,GPIO.RISING,callback=PIN_B_callback, bouncetime=100)
+
+count = 0
+last_count = 0
+
 while True: # main program loop
-                
+    global dirstr
+    dirstr = ""
+    
     if sync_in == False:#internal clock
         sync()
         time.sleep(internal_rate)
+    else:
+        time.sleep(0.1)
+    
+
+    count += rotary_count(dirstr)
+    if count != last_count:
+        print(count)
+        last_count = count
+        
+        
