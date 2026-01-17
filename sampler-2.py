@@ -36,13 +36,14 @@ class Sequence():
             self._slot = self._slots[self._slot_idx]
 
         if sync_count - (self._last_sync_count + self._slot.delay) == self._slot.length or sync_count - (self._last_sync_count + self._slot.delay) == 0:
-                        
-            print("play", sync_count, self._last_sync_count, self._slot.length, self._slot.delay, self._slot_idx, self._slot.sample)
             
-            sound = pg.mixer.Sound(self._slot.sample)
-            sound.set_volume(self._slot.volume)
-            pg.mixer.Channel(channel).set_volume(self._volume)
-            pg.mixer.Channel(channel).play(sound)
+            if self._slot.sample is not "":
+                print("play", sync_count, self._last_sync_count, self._slot.length, self._slot.delay, self._slot_idx, self._slot.sample)
+                
+                sound = pg.mixer.Sound(self._slot.sample)
+                sound.set_volume(self._slot.volume)
+                pg.mixer.Channel(channel).set_volume(self._volume)
+                pg.mixer.Channel(channel).play(sound)
             
         if sync_count - self._last_sync_count == self._slot.length - 1:
                 if self._slot_idx >= len(self._slots) - 1:
@@ -134,9 +135,32 @@ sequence_2.slots = [slot_2_1, slot_2_2]
 sequences.append(sequence_2)
 
 slot_3_1 = Slot("ooh.wav", 50, 6, 1.0)
+slot_3_2 = Slot("", 50, 0, 1.0)
 sequence_3 = Sequence()
-sequence_3.slots = [slot_3_1]
+sequence_3.slots = [slot_3_1, slot_3_2]
 sequences.append(sequence_3)
+
+slot_4_1 = Slot("bass.wav", 50, 0, 1.0)
+sequence_4 = Sequence()
+sequence_4.slots = [slot_4_1]
+sequences.append(sequence_4)
+
+slot_5_1 = Slot("hi-hats.wav", 50, 0, 0.5)
+sequence_5 = Sequence()
+sequence_5.slots = [slot_5_1]
+sequences.append(sequence_5)
+
+slot_6_1 = Slot("", 50, 0, 1.0)
+slot_6_2 = Slot("wi-yeah.wav", 50, 34, 1.0)
+sequence_6 = Sequence()
+sequence_6.slots = [slot_6_1, slot_6_2]
+sequences.append(sequence_6)
+
+slot_7_1 = Slot("ac-guitar-new-1.wav", 25, 0, 1.0)
+slot_7_2 = Slot("ac-guitar-new-2.wav", 25, 0, 1.0)
+sequence_7 = Sequence()
+sequence_7.slots = [slot_7_1, slot_7_2]
+sequences.append(sequence_7)
 
 #choose an external sync signal (true) or use the internal one (false)
 sync_in = False
