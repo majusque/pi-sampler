@@ -35,9 +35,9 @@ class Sequence():
             self._called = True
             self._slot = self._slots[self._slot_idx]
 
-        if sync_count - self._last_sync_count == self._slot.length or sync_count - self._last_sync_count == 0:
+        if sync_count - (self._last_sync_count + self._slot.delay) == self._slot.length or sync_count - (self._last_sync_count + self._slot.delay) == 0:
                         
-            print("play", sync_count, self._last_sync_count, self._slot.length, self._slot_idx, self._slot.sample)
+            print("play", sync_count, self._last_sync_count, self._slot.length, self._slot.delay, self._slot_idx, self._slot.sample)
             
             sound = pg.mixer.Sound(self._slot.sample)
             sound.set_volume(self._slot.volume)
