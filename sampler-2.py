@@ -15,8 +15,14 @@ def sync_trigger(Pin):
     Function triggered by sync-in voltage,
     increments the sync counter
     """
+    sync()
+    
+def sync():
     global sync_count
     sync_count += 1
+    #play sequences
+    for i in range(0,len(sequences)):
+        sequences[i].play(sync_count, i)
     
 class Sequence():
     
@@ -39,7 +45,7 @@ class Sequence():
             if sync_count - (self._last_sync_count + self._slot.delay) == self._slot.length or sync_count - (self._last_sync_count + self._slot.delay) == 0:
                 
                 if self._slot.sample is not "":
-                    print("play", sync_count, self._last_sync_count, self._slot.length, self._slot.delay, self._slot_idx, self._slot.sample)
+                    #print("play", sync_count, self._last_sync_count, self._slot.length, self._slot.delay, self._slot_idx, self._slot.sample)
                     
                     sound = pg.mixer.Sound(self._slot.sample)
                     sound.set_volume(self._slot.volume)
@@ -212,19 +218,9 @@ GPIO.add_event_detect(play_all_pin,GPIO.RISING,callback=play_all_button_callback
 if sync_in:
     GPIO.add_event_detect(sync_in_pin, GPIO.FALLING, callback=sync_trigger)
     
-
-
-    
     
 while True: # main program loop
-    
-    #update sync count
-    if sync_count != last_sync_count:
-        last_sync_count = sync_count
-        
-        for i in range(0,len(sequences)):
-            sequences[i].play(sync_count, i)
-            
+                
     if sync_in == False:#internal clock
-        sync_count += 1
+        sync()
         time.sleep(internal_rate)
