@@ -76,6 +76,14 @@ class Sequence():
     @slot_idx.setter
     def slot_idx(self, value):
         self._slot_idx = value
+        
+    @property
+    def called(self):
+        return self._called
+    
+    @slot_idx.setter
+    def called(self, value):
+        self._called = value
     
         
 class Slot():
@@ -124,6 +132,7 @@ def play_all_button_callback(channel):
     sync_count = 0
     for sequence in sequences:
         sequence.slot_idx = 0
+        sequence.called = False
     global play_all
     play_all = not play_all
     print("play_all: " + str(play_all))
