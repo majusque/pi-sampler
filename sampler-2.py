@@ -160,6 +160,9 @@ def rotary_count(dirstr):
         return 1
     else:
         return 0
+    
+def select_button_callback(channel):
+    print("select")
 
 #samples and sequences
 sample_paths = []
@@ -247,6 +250,9 @@ GPIO.add_event_detect(PIN_A,GPIO.RISING,callback=PIN_A_callback, bouncetime=100)
 
 GPIO.setup(PIN_B, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.add_event_detect(PIN_B,GPIO.RISING,callback=PIN_B_callback, bouncetime=100)
+
+GPIO.setup(BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.add_event_detect(BUTTON,GPIO.RISING,callback=select_button_callback, bouncetime=500)
 
 count = 0
 last_count = 0
