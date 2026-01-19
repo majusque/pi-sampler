@@ -45,12 +45,14 @@ class Sequence():
 
             if sync_count - (self._last_sync_count + self._slot.delay) == self._slot.length or sync_count - (self._last_sync_count + self._slot.delay) == 0:
                 
-                if self._slot.sample is not "":
+                if self._slot.sample != "":
                     #print("play", sync_count, self._last_sync_count, self._slot.length, self._slot.delay, self._slot_idx, self._slot.sample)
-                    
                     sound = pg.mixer.Sound(self._slot.sample)
                     sound.set_volume(self._slot.volume)
-                    pg.mixer.Channel(channel).set_volume(self._volume)
+                    if mutes[channel]:
+                        pg.mixer.Channel(channel).set_volume(0.0)
+                    else:
+                        pg.mixer.Channel(channel).set_volume(self._volume)
                     pg.mixer.Channel(channel).play(sound)
                 
             if sync_count - self._last_sync_count == self._slot.length - 1:
@@ -91,6 +93,14 @@ class Sequence():
     @slot_idx.setter
     def called(self, value):
         self._called = value
+        
+    @property
+    def volume(self):
+        return self._volume
+    
+    @volume.setter
+    def volume(self, value):
+        self._volume = value
     
         
 class Slot():
@@ -175,8 +185,39 @@ def splash_load(TFT):
     TFT.put_string("Menu",28,28,TFT.WHITE,TFT.BLACK)  # std font 3 (default)
 
 
-   
+def mute_button_0_callback(channel):
+    mute_channel(0)
+    
+def mute_button_1_callback(channel):
+    mute_channel(1)
 
+def mute_button_2_callback(channel):
+    mute_channel(2)
+    
+def mute_button_3_callback(channel):
+    mute_channel(3)
+    
+def mute_button_4_callback(channel):
+    mute_channel(4)
+    
+def mute_button_5_callback(channel):
+    mute_channel(5)
+
+def mute_button_6_callback(channel):
+    mute_channel(6)
+    
+def mute_button_7_callback(channel):
+    mute_channel(7)
+    
+
+def mute_channel(idx):
+    global sequences
+    global mutes
+    mutes[idx] = not mutes[idx]
+    if mutes[idx]:
+        pg.mixer.Channel(idx).set_volume(0.0)
+    else:
+        pg.mixer.Channel(idx).set_volume(sequences[idx].volume)
 
 #samples and sequences
 sample_paths = []
@@ -281,8 +322,41 @@ TFT = TFT144(GPIO, spidev.SpiDev(), CE, DC, RST, LED, isRedBoard=False)
 TFT.clear_display(TFT.BLACK)
 splash_load(TFT)
 
+#button
+mute_pin_0 = 19
+GPIO.setup(mute_pin_0, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.add_event_detect(mute_pin_0,GPIO.RISING,callback=mute_button_0_callback, bouncetime=500)
 
+mute_pin_1 = 13
+GPIO.setup(mute_pin_1, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.add_event_detect(mute_pin_1,GPIO.RISING,callback=mute_button_1_callback, bouncetime=500)
 
+mute_pin_2 = 6
+GPIO.setup(mute_pin_2, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.add_event_detect(mute_pin_2,GPIO.RISING,callback=mute_button_2_callback, bouncetime=500)
+
+mute_pin_3 = 5
+GPIO.setup(mute_pin_3, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.add_event_detect(mute_pin_3,GPIO.RISING,callback=mute_button_3_callback, bouncetime=500)
+
+# mute_pin_4 = 
+# GPIO.setup(mute_pin_4, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+# GPIO.add_event_detect(mute_pin_4,GPIO.RISING,callback=mute_button_4_callback, bouncetime=500)
+# 
+# mute_pin_5 = 
+# GPIO.setup(mute_pin_5, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+# GPIO.add_event_detect(mute_pin_5,GPIO.RISING,callback=mute_button_5_callback, bouncetime=500)
+# 
+# mute_pin_6 = 
+# GPIO.setup(mute_pin_6, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+# GPIO.add_event_detect(mute_pin_6,GPIO.RISING,callback=mute_button_6_callback, bouncetime=500)
+# 
+# mute_pin_7 = 
+# GPIO.setup(mute_pin_7, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+# GPIO.add_event_detect(mute_pin_7,GPIO.RISING,callback=mute_button_7_callback, bouncetime=500)
+
+global mutes
+mutes = [False]*8
 
 count = 0
 last_count = 0
