@@ -341,21 +341,21 @@ mute_pin_3 = 5
 GPIO.setup(mute_pin_3, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.add_event_detect(mute_pin_3,GPIO.RISING,callback=mute_button_3_callback, bouncetime=500)
 
-# mute_pin_4 = 27
-# GPIO.setup(mute_pin_4, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-# GPIO.add_event_detect(mute_pin_4,GPIO.RISING,callback=mute_button_4_callback, bouncetime=500)
-# 
-# mute_pin_5 = 25
-# GPIO.setup(mute_pin_5, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-# GPIO.add_event_detect(mute_pin_5,GPIO.RISING,callback=mute_button_5_callback, bouncetime=500)
-# 
-# mute_pin_6 = 7
-# GPIO.setup(mute_pin_6, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-# GPIO.add_event_detect(mute_pin_6,GPIO.RISING,callback=mute_button_6_callback, bouncetime=500)
-# 
-# mute_pin_7 = 8
-# GPIO.setup(mute_pin_7, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-# GPIO.add_event_detect(mute_pin_7,GPIO.RISING,callback=mute_button_7_callback, bouncetime=500)
+mute_pin_4 = 27
+GPIO.setup(mute_pin_4, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.add_event_detect(mute_pin_4,GPIO.RISING,callback=mute_button_4_callback, bouncetime=500)
+
+mute_pin_5 = 25
+GPIO.setup(mute_pin_5, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.add_event_detect(mute_pin_5,GPIO.RISING,callback=mute_button_5_callback, bouncetime=500)
+
+mute_pin_6 = 12
+GPIO.setup(mute_pin_6, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.add_event_detect(mute_pin_6,GPIO.RISING,callback=mute_button_6_callback, bouncetime=500)
+
+mute_pin_7 = 13
+GPIO.setup(mute_pin_7, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+GPIO.add_event_detect(mute_pin_7,GPIO.RISING,callback=mute_button_7_callback, bouncetime=500)
 
 global mutes
 mutes = [False]*8
