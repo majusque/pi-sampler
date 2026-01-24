@@ -3,6 +3,8 @@ import time
 import RPi.GPIO as GPIO
 from lib_tft144 import TFT144
 import spidev
+import json
+
 
 pg.mixer.init()
 
@@ -282,7 +284,7 @@ play_all = False
 sync_count = 0 #the current value of the sync trigger counter
 last_sync_count = 0
 #read the incoming sync trigger voltage and increment the sync counter
-sync_in_pin = 21
+sync_in_pin = 24
 GPIO.setmode(GPIO.BCM)
 GPIO.setup(sync_in_pin, GPIO.IN)
 
@@ -323,7 +325,7 @@ TFT.clear_display(TFT.BLACK)
 splash_load(TFT)
 
 #button
-mute_pin_0 = 19
+mute_pin_0 = 17
 GPIO.setup(mute_pin_0, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.add_event_detect(mute_pin_0,GPIO.RISING,callback=mute_button_0_callback, bouncetime=500)
 
@@ -339,19 +341,19 @@ mute_pin_3 = 5
 GPIO.setup(mute_pin_3, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.add_event_detect(mute_pin_3,GPIO.RISING,callback=mute_button_3_callback, bouncetime=500)
 
-# mute_pin_4 = 
+# mute_pin_4 = 27
 # GPIO.setup(mute_pin_4, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 # GPIO.add_event_detect(mute_pin_4,GPIO.RISING,callback=mute_button_4_callback, bouncetime=500)
 # 
-# mute_pin_5 = 
+# mute_pin_5 = 25
 # GPIO.setup(mute_pin_5, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 # GPIO.add_event_detect(mute_pin_5,GPIO.RISING,callback=mute_button_5_callback, bouncetime=500)
 # 
-# mute_pin_6 = 
+# mute_pin_6 = 7
 # GPIO.setup(mute_pin_6, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 # GPIO.add_event_detect(mute_pin_6,GPIO.RISING,callback=mute_button_6_callback, bouncetime=500)
 # 
-# mute_pin_7 = 
+# mute_pin_7 = 8
 # GPIO.setup(mute_pin_7, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 # GPIO.add_event_detect(mute_pin_7,GPIO.RISING,callback=mute_button_7_callback, bouncetime=500)
 
@@ -360,6 +362,9 @@ mutes = [False]*8
 
 count = 0
 last_count = 0
+vol_count = 0
+
+
 
 while True: # main program loop
     global dirstr
@@ -373,6 +378,18 @@ while True: # main program loop
     else:
         time.sleep(0.1)
     
+    vol_count += 1
+    if vol_count == 5:
+        file = open("vols.json", "r")
+        vols = json.loads(file.read())
+        vol_count = 0
+        #print(vols)
+        for i in range(0,7):
+            if mutes[i] == False:
+                pg.mixer.Channel(i).set_volume(vols[i])
+                sequences[i].volume = vols[i]
+
+    
 
     count += rotary_count(dirstr)
     if count != last_count:
@@ -384,4 +401,5 @@ while True: # main program loop
         TFT.clear_display(TFT.BLACK)
         TFT.put_string("select",10,10,TFT.WHITE,TFT.BLACK)  # std font 3 (default)
         
+
         
