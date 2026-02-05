@@ -48,7 +48,6 @@ class Sequence():
             if sync_count - (self._last_sync_count + self._slot.delay) == self._slot.length or sync_count - (self._last_sync_count + self._slot.delay) == 0:
                 
                 if self._slot.sample != "":
-                    #print("play", sync_count, self._last_sync_count, self._slot.length, self._slot.delay, self._slot_idx, self._slot.sample)
                     sound = pg.mixer.Sound(self._slot.sample)
                     sound.set_volume(self._slot.volume)
                     if mutes[channel]:
@@ -168,9 +167,9 @@ def PIN_B_callback(channel):
 
 def rotary_count(dirstr):
     if dirstr == "AB":
-        return -1
-    elif dirstr == "BA":
         return 1
+    elif dirstr == "BA":
+        return -1
     else:
         return 0
     
@@ -220,6 +219,12 @@ def mute_channel(idx):
         pg.mixer.Channel(idx).set_volume(0.0)
     else:
         pg.mixer.Channel(idx).set_volume(sequences[idx].volume)
+        
+def play_display(TFT):
+    TFT.clear_display(TFT.BLACK)
+    for i in range(0,8):
+        s = " " + str(i) + " " + str(mutes[i]) 
+    TFT.put_string(s,0,10*i,TFT.WHITE,TFT.BLACK)  # std font 3 (default)
 
 #samples and sequences
 sample_paths = []
@@ -329,7 +334,7 @@ mute_pin_0 = 17
 GPIO.setup(mute_pin_0, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.add_event_detect(mute_pin_0,GPIO.RISING,callback=mute_button_0_callback, bouncetime=500)
 
-mute_pin_1 = 13
+mute_pin_1 = 16
 GPIO.setup(mute_pin_1, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.add_event_detect(mute_pin_1,GPIO.RISING,callback=mute_button_1_callback, bouncetime=500)
 
@@ -364,7 +369,8 @@ count = 0
 last_count = 0
 vol_count = 0
 
-
+screen_refresh = 10
+screen_refresh_count = 0
 
 while True: # main program loop
     global dirstr
@@ -388,7 +394,14 @@ while True: # main program loop
             if mutes[i] == False:
                 pg.mixer.Channel(i).set_volume(vols[i])
                 sequences[i].volume = vols[i]
-
+                
+#     if play_all:       
+#         if screen_refresh_count == screen_refresh:
+#             play_display(TFT)
+#             screen_refresh_count = 0
+    
+    
+    screen_refresh_count += 1
     
 
     count += rotary_count(dirstr)
@@ -401,5 +414,4 @@ while True: # main program loop
         TFT.clear_display(TFT.BLACK)
         TFT.put_string("select",10,10,TFT.WHITE,TFT.BLACK)  # std font 3 (default)
         
-
         
