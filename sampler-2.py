@@ -3,8 +3,13 @@ import time
 import RPi.GPIO as GPIO
 from lib_tft144 import TFT144
 import spidev
+import threading
+import board
+import busio
+import socket
 import json
 
+from adafruit_ads1x15 import ADS1115, AnalogIn, ads1x15
 
 pg.mixer.init()
 
@@ -225,6 +230,55 @@ def play_display(TFT):
     for i in range(0,8):
         s = " " + str(i) + " " + str(mutes[i]) 
     TFT.put_string(s,0,10*i,TFT.WHITE,TFT.BLACK)  # std font 3 (default)
+    
+def play_loop():
+    count = 0
+    last_count = 0
+    while True: # main program loop
+        global dirstr
+        dirstr = ""
+        global select 
+        select = False
+        
+        if sync_in == False:#internal clock
+            sync()
+            time.sleep(internal_rate)
+        else:
+            time.sleep(0.1)
+        
+#         vol_count += 1
+#         if vol_count == 5:
+#             file = open("vols.json", "r")
+#             vols = json.loads(file.read())
+#             vol_count = 0
+#             #print(vols)
+        for i in range(0,7):
+            if mutes[i] == False:
+                pg.mixer.Channel(i).set_volume(vols[i])
+                sequences[i].volume = vols[i]
+
+        count += rotary_count(dirstr)
+        if count != last_count:
+            print(count)
+            last_count = count
+        
+#         if select:
+#             print("select")
+#             TFT.clear_display(TFT.BLACK)
+#             TFT.put_string("select",10,10,TFT.WHITE,TFT.BLACK)  # std font 3 (default)
+
+
+def read_vols():
+    global vols
+    while True:
+        for i in range(0,4):
+            v = int(round(x[i].voltage, 1)*30.3)
+            vols[i] = float(v/100)
+        for j in range(0,4):
+            v = int(round(y[j].voltage, 1)*30.3)
+            vols[j+4] = float(v/100)
+        print(vols)
+        time.sleep(0.5)
 
 #samples and sequences
 sample_paths = []
@@ -372,46 +426,67 @@ vol_count = 0
 screen_refresh = 10
 screen_refresh_count = 0
 
-while True: # main program loop
-    global dirstr
-    dirstr = ""
-    global select 
-    select = False
-    
-    if sync_in == False:#internal clock
-        sync()
-        time.sleep(internal_rate)
-    else:
-        time.sleep(0.1)
-    
-    vol_count += 1
-    if vol_count == 5:
-        file = open("vols.json", "r")
-        vols = json.loads(file.read())
-        vol_count = 0
-        #print(vols)
-        for i in range(0,7):
-            if mutes[i] == False:
-                pg.mixer.Channel(i).set_volume(vols[i])
-                sequences[i].volume = vols[i]
-                
-#     if play_all:       
-#         if screen_refresh_count == screen_refresh:
-#             play_display(TFT)
-#             screen_refresh_count = 0
-    
-    
-    screen_refresh_count += 1
-    
+# Create the I2C bus
+i2c2 = busio.I2C(3,2)
+i2c = busio.I2C(1,0)
 
-    count += rotary_count(dirstr)
-    if count != last_count:
-        print(count)
-        last_count = count
-    
-    if select:
-        print("select")
-        TFT.clear_display(TFT.BLACK)
-        TFT.put_string("select",10,10,TFT.WHITE,TFT.BLACK)  # std font 3 (default)
-        
-        
+# Create the ADC object using the I2C bus
+ads = ADS1115(i2c2)
+ads2 = ADS1115(i2c)
+
+x = []
+x.append(AnalogIn(ads, ads1x15.Pin.A0))
+x.append(AnalogIn(ads, ads1x15.Pin.A1))
+x.append(AnalogIn(ads, ads1x15.Pin.A2))
+x.append(AnalogIn(ads, ads1x15.Pin.A3))
+
+y = []
+y.append(AnalogIn(ads2, ads1x15.Pin.A0))
+y.append(AnalogIn(ads2, ads1x15.Pin.A1))
+y.append(AnalogIn(ads2, ads1x15.Pin.A2))
+y.append(AnalogIn(ads2, ads1x15.Pin.A3))
+
+global vols
+vols = [1.0]*8
+
+vols_thread = threading.Thread(target=read_vols)
+vols_thread.start()
+
+play_thread = threading.Thread(target=play_loop)
+play_thread.start()
+
+
+# while True: # main program loop
+#     global dirstr
+#     dirstr = ""
+#     global select 
+#     select = False
+#     
+#     if sync_in == False:#internal clock
+#         sync()
+#         time.sleep(internal_rate)
+#     else:
+#         time.sleep(0.1)
+#     
+#     vol_count += 1
+#     if vol_count == 5:
+#         file = open("vols.json", "r")
+#         vols = json.loads(file.read())
+#         vol_count = 0
+#         #print(vols)
+#         for i in range(0,7):
+#             if mutes[i] == False:
+#                 pg.mixer.Channel(i).set_volume(vols[i])
+#                 sequences[i].volume = vols[i]
+# 
+#     count += rotary_count(dirstr)
+#     if count != last_count:
+#         print(count)
+#         last_count = count
+#     
+#     if select:
+#         print("select")
+#         TFT.clear_display(TFT.BLACK)
+#         TFT.put_string("select",10,10,TFT.WHITE,TFT.BLACK)  # std font 3 (default)
+#         
+#         
