@@ -1,13 +1,13 @@
 import pygame as pg
 import time
 import RPi.GPIO as GPIO
-from lib_tft144 import TFT144
-import spidev
 import threading
 import board
 import busio
 import socket
 import json
+from tkinter import * 
+from tkinter import font, ttk
 
 from adafruit_ads1x15 import ADS1115, AnalogIn, ads1x15
 
@@ -17,6 +17,8 @@ global sequences
 sequences = []
 global samples
 samples = []
+global current_samples
+current_samples = [""]*8
 
 def sync_trigger(Pin):
     """
@@ -27,10 +29,13 @@ def sync_trigger(Pin):
     
 def sync():
     global sync_count
+    global current_samples
     sync_count += 1
     #play sequences
     for i in range(0,len(sequences)):
-        sequences[i].play(sync_count, i)
+        s = sequences[i].play(sync_count, i)
+        if s != None:
+            current_samples[i] = s.sample
     
 class Sequence():
     
@@ -70,6 +75,8 @@ class Sequence():
                     self._slot = self._slots[self._slot_idx]
                     
                     self._last_sync_count = sync_count + 1
+                    
+        return self._slot
 
 
         
@@ -181,14 +188,8 @@ def rotary_count(dirstr):
 def select_button_callback(channel):
     global select
     select = True
-    
-def splash_load(TFT):
-    TFT.clear_display(TFT.BLACK)
-    TFT.put_string("SpAmpLer",28,28,TFT.WHITE,TFT.BLACK)  # std font 3 (default)
-    TFT.put_string("EgJam Ind. 2025", 24,80,TFT.WHITE, TFT.BLACK)     # doubled font 4
-    time.sleep(3)
-    TFT.clear_display(TFT.BLACK)
-    TFT.put_string("Menu",28,28,TFT.WHITE,TFT.BLACK)  # std font 3 (default)
+    print("select")
+
 
 
 def mute_button_0_callback(channel):
@@ -225,12 +226,7 @@ def mute_channel(idx):
     else:
         pg.mixer.Channel(idx).set_volume(sequences[idx].volume)
         
-def play_display(TFT):
-    TFT.clear_display(TFT.BLACK)
-    for i in range(0,8):
-        s = " " + str(i) + " " + str(mutes[i]) 
-    TFT.put_string(s,0,10*i,TFT.WHITE,TFT.BLACK)  # std font 3 (default)
-    
+        
 def play_loop():
     count = 0
     last_count = 0
@@ -245,13 +241,7 @@ def play_loop():
             time.sleep(internal_rate)
         else:
             time.sleep(0.1)
-        
-#         vol_count += 1
-#         if vol_count == 5:
-#             file = open("vols.json", "r")
-#             vols = json.loads(file.read())
-#             vol_count = 0
-#             #print(vols)
+
         for i in range(0,7):
             if mutes[i] == False:
                 pg.mixer.Channel(i).set_volume(vols[i])
@@ -261,12 +251,7 @@ def play_loop():
         if count != last_count:
             print(count)
             last_count = count
-        
-#         if select:
-#             print("select")
-#             TFT.clear_display(TFT.BLACK)
-#             TFT.put_string("select",10,10,TFT.WHITE,TFT.BLACK)  # std font 3 (default)
-
+ 
 
 def read_vols():
     global vols
@@ -277,8 +262,100 @@ def read_vols():
         for j in range(0,4):
             v = int(round(y[j].voltage, 1)*30.3)
             vols[j+4] = float(v/100)
-        print(vols)
+        #print(vols)
         time.sleep(0.5)
+        
+def display_loop():
+    global TFT
+    while True:
+        play_display(TFT)
+        time.sleep(1)
+        
+############################################################################################################################        
+def gui():
+    root=Tk()
+    root.configure(bg='black')
+    root.attributes('-fullscreen', False)
+    root.bind("<F11>", lambda event: root.attributes("-fullscreen",
+                                        not root.attributes("-fullscreen")))
+    root.bind("<Escape>", lambda event: root.attributes("-fullscreen", False))
+    fontname = "Courier"
+    font_size = 16
+    main_title_font_size = 18
+    sub_title_font_size = 18
+    pad = 6
+    default_font = font.nametofont("TkDefaultFont")
+    default_font.configure(family=fontname, size=font_size)
+    wrap = 1500
+    title  = "SpAmPLeR"
+
+    root.title(title)
+
+    s = StringVar()
+    s.set("SpAmPLeR")
+    banner_label = Label(root, textvariable = s, foreground="white", background="black", font=(fontname, sub_title_font_size, "bold"), wraplength=wrap)
+    banner_label.pack(pady=pad)
+    separator = ttk.Separator(root, orient='horizontal')
+    separator.pack(fill='x')
+
+    global play_string
+    play_string = StringVar()
+
+    global chnls
+    chnls = []
+    for i in range(0,8):
+        c = StringVar()
+        chnls.append(c)
+
+    def update_variables():
+        global vols
+        global mutes
+        global play_all
+        global sequences
+        global current_samples
+        while True:
+            
+            for i in range(0,len(chnls)):
+                cs = current_samples[i]
+                if current_samples[i] == "":
+                    cs = "-"
+                chnls[i].set(str(i+1) + " v=" + str(vols[i]) + ", " + str(int(not mutes[i])) + ", " + cs)
+            
+            if play_all:
+                play_string.set(">")
+            else:
+                play_string.set("||")
+
+
+            time.sleep(0.25)
+            root.update()
+
+    def show_channels():
+        global chnls
+        for i in range(0,8):
+            c_label = Label(root, textvariable = chnls[i], justify="left", foreground="white", background="black", font=(fontname, sub_title_font_size, "bold"), wraplength=wrap)
+            c_label.pack(pady=pad)
+            
+    def show_playing():
+        global play_string
+        play_label = Label(root, textvariable = play_string, foreground="white", background="black", font=(fontname, sub_title_font_size, "bold"), wraplength=wrap)
+        play_label.pack(pady=pad)
+    
+            
+            
+    top_label = Label(root, textvariable = "", foreground="white", background="black")
+    top_label.pack(pady=15)
+    
+    show_playing()
+    show_channels()
+    update_variables()
+
+
+    separator = ttk.Separator(root, orient='horizontal')
+    separator.pack(fill='x')
+
+    root.mainloop()
+##############################################################################################################################################           
 
 #samples and sequences
 sample_paths = []
@@ -371,18 +448,6 @@ GPIO.setup(BUTTON, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
 GPIO.add_event_detect(BUTTON,GPIO.RISING,callback=select_button_callback, bouncetime=500)
 
 
-#display
-RST = 18
-CE =   0    # 0 or 1 for CE0 / CE1 number (NOT the pin#)
-DC =  22    # Labeled on board as "A0"
-LED = 23    # LED backlight sinks 10-14 mA @ 3V
-#these pins defult value:
-#SCK = 11
-#MOSI (SDA) = 10 # Don't forget the other 2 SPI pins SCK and MOSI (SDA)
-TFT = TFT144(GPIO, spidev.SpiDev(), CE, DC, RST, LED, isRedBoard=False)
-TFT.clear_display(TFT.BLACK)
-splash_load(TFT)
-
 #button
 mute_pin_0 = 17
 GPIO.setup(mute_pin_0, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
@@ -455,38 +520,5 @@ vols_thread.start()
 play_thread = threading.Thread(target=play_loop)
 play_thread.start()
 
-
-# while True: # main program loop
-#     global dirstr
-#     dirstr = ""
-#     global select 
-#     select = False
-#     
-#     if sync_in == False:#internal clock
-#         sync()
-#         time.sleep(internal_rate)
-#     else:
-#         time.sleep(0.1)
-#     
-#     vol_count += 1
-#     if vol_count == 5:
-#         file = open("vols.json", "r")
-#         vols = json.loads(file.read())
-#         vol_count = 0
-#         #print(vols)
-#         for i in range(0,7):
-#             if mutes[i] == False:
-#                 pg.mixer.Channel(i).set_volume(vols[i])
-#                 sequences[i].volume = vols[i]
-# 
-#     count += rotary_count(dirstr)
-#     if count != last_count:
-#         print(count)
-#         last_count = count
-#     
-#     if select:
-#         print("select")
-#         TFT.clear_display(TFT.BLACK)
-#         TFT.put_string("select",10,10,TFT.WHITE,TFT.BLACK)  # std font 3 (default)
-#         
-#         
+gui_thread = threading.Thread(target=gui)
+gui_thread.start()
