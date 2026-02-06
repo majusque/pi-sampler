@@ -272,6 +272,8 @@ def display_loop():
         time.sleep(1)
         
 ############################################################################################################################        
+############################################################################################################################        
+
 def gui():
     root=Tk()
     root.configure(bg='black')
@@ -284,6 +286,7 @@ def gui():
     main_title_font_size = 18
     sub_title_font_size = 18
     pad = 6
+    xpad = 5
     default_font = font.nametofont("TkDefaultFont")
     default_font.configure(family=fontname, size=font_size)
     wrap = 1500
@@ -317,14 +320,17 @@ def gui():
             
             for i in range(0,len(chnls)):
                 cs = current_samples[i]
+                v = str(vols[i])
+                if len(v) == 3:
+                    v += "0"
                 if current_samples[i] == "":
                     cs = "-"
-                chnls[i].set(str(i+1) + " v=" + str(vols[i]) + ", " + str(int(not mutes[i])) + ", " + cs)
+                chnls[i].set(str(i+1) + " " + v + ", " + str(int(not mutes[i])) + ", " + cs)
             
             if play_all:
-                play_string.set(">")
+                play_string.set("1")
             else:
-                play_string.set("||")
+                play_string.set("0")
 
 
             time.sleep(0.25)
@@ -334,17 +340,15 @@ def gui():
         global chnls
         for i in range(0,8):
             c_label = Label(root, textvariable = chnls[i], justify="left", foreground="white", background="black", font=(fontname, sub_title_font_size, "bold"), wraplength=wrap)
-            c_label.pack(pady=pad)
+            c_label.pack(pady=pad, padx=xpad, anchor="w")
             
     def show_playing():
         global play_string
         play_label = Label(root, textvariable = play_string, foreground="white", background="black", font=(fontname, sub_title_font_size, "bold"), wraplength=wrap)
         play_label.pack(pady=pad)
     
-            
-            
     top_label = Label(root, textvariable = "", foreground="white", background="black")
-    top_label.pack(pady=15)
+    top_label.pack(pady=1)
     
     show_playing()
     show_channels()
@@ -355,6 +359,8 @@ def gui():
     separator.pack(fill='x')
 
     root.mainloop()
+    
+##############################################################################################################################################
 ##############################################################################################################################################           
 
 #samples and sequences
