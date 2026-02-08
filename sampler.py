@@ -8,6 +8,7 @@ import socket
 import json
 from tkinter import * 
 from tkinter import font, ttk
+import json
 
 from adafruit_ads1x15 import ADS1115, AnalogIn, ads1x15
 
@@ -47,6 +48,7 @@ class Sequence():
         self._volume = 1.0
         self._slot = None
         
+    
     def play(self, sync_count, channel):
 
         if play_all:
@@ -114,15 +116,33 @@ class Sequence():
     @volume.setter
     def volume(self, value):
         self._volume = value
+        
+    def to_dict(self):
+        s = {}
+        s["slots"] = []
+        for k in self._slots:
+            print(k)
+            s["slots"].append(k.to_dict())
+        s["volume"] = self._volume
+        return s
+    
+    def from_dict(self, d):
+        slts = []
+        for s in d["slots"]:
+            slt = Slot()
+            slt.from_dict(s)
+            slts.append(slt)
+        self._slots = slts
+        self._volume = d["volume"]
     
         
 class Slot():
-    
-    def __init__(self, sample, length, delay, volume):
-        self._sample = sample
-        self._delay = delay
-        self._volume = volume
-        self._length = length
+        
+    def __init_(self):
+        self._sample = ""
+        self._delay = 0
+        self._volume = 0.0
+        self._length = 0
         
     @property
     def sample(self):
@@ -155,6 +175,23 @@ class Slot():
     @length.setter
     def length(self, value):
         self._length = value
+        
+    def to_dict(self):
+        d = {}
+        d["sample"] = self._sample
+        d["delay"] = self._delay
+        d["length"] = self._length
+        d["volume"] = self._volume
+        return d
+    
+    def from_dict(self,d):
+        self._sample = d["sample"]
+        self._delay = d["delay"]
+        self._length = d["length"]
+        self._volume = d["volume"]
+        
+        
+
 
 
 def play_all_button_callback(channel):
@@ -271,6 +308,26 @@ def display_loop():
         play_display(TFT)
         time.sleep(1)
         
+def write_sequences(sequences, file_path):
+    l = []
+    for s in sequences:
+        l.append(s.to_dict())
+    file = open(file_path, "w")
+    file.write(json.dumps(l))
+    file.close()
+    
+def load_sequences(file_path):
+    file = open(file_path, "r")
+    j = json.loads(file.read())
+    file.close()
+    sqs = []
+    for s in j:
+        sq = Sequence()
+        sq.from_dict(s)
+        sqs.append(sq)
+    return sqs
+    
+        
 ############################################################################################################################        
 ############################################################################################################################        
 
@@ -325,7 +382,7 @@ def gui():
                     v += "0"
                 if current_samples[i] == "":
                     cs = "-"
-                chnls[i].set(str(i+1) + " " + v + ", " + str(int(not mutes[i])) + ", " + cs)
+                chnls[i].set(str(i+1) + " " + v + ", " + str(int(not mutes[i])) + ", " + cs.split("/")[-1])
             
             if play_all:
                 play_string.set("1")
@@ -364,57 +421,11 @@ def gui():
 ##############################################################################################################################################           
 
 #samples and sequences
-sample_paths = []
-sample_paths.append("wi-piano-1.wav")
-sample_paths.append("wi-piano-2.wav")
-sample_paths.append("ac-guitar-new-1.wav")
-sample_paths.append("ac-guitar-new-2.wav")
-sample_paths.append("drums.wav")
-sample_paths.append("bass.wav")
-sample_paths.append("hi-hats.wav")
-sample_paths.append("ooh.wav")
-sample_paths.append("wi-yeah.wav")
-sample_paths.append("wi-fish.wav")
-sample_paths.append("wi-2-guitar-1.wav")
+samples_root_path = "/media/matt/1234-5678/samples/"
+sequences_root_path = "/media/matt/1234-5678/sequences/"
 
-slot_1_1 = Slot("drums.wav", 50, 0, 1.0)
-sequence_1 = Sequence()
-sequence_1.slots = [slot_1_1]
-sequences.append(sequence_1)
-
-slot_2_1 = Slot("wi-piano-1.wav", 25, 0, 1.0)
-slot_2_2 = Slot("wi-piano-2.wav", 25, 0, 1.0)
-sequence_2 = Sequence()
-sequence_2.slots = [slot_2_1, slot_2_2]
-sequences.append(sequence_2)
-
-slot_3_1 = Slot("ooh.wav", 50, 6, 1.0)
-slot_3_2 = Slot("", 50, 0, 1.0)
-sequence_3 = Sequence()
-sequence_3.slots = [slot_3_1, slot_3_2]
-sequences.append(sequence_3)
-
-slot_4_1 = Slot("bass.wav", 50, 0, 1.0)
-sequence_4 = Sequence()
-sequence_4.slots = [slot_4_1]
-sequences.append(sequence_4)
-
-slot_5_1 = Slot("hi-hats.wav", 50, 0, 0.5)
-sequence_5 = Sequence()
-sequence_5.slots = [slot_5_1]
-sequences.append(sequence_5)
-
-slot_6_1 = Slot("", 50, 0, 1.0)
-slot_6_2 = Slot("wi-yeah.wav", 50, 34, 1.0)
-sequence_6 = Sequence()
-sequence_6.slots = [slot_6_1, slot_6_2]
-sequences.append(sequence_6)
-
-slot_7_1 = Slot("ac-guitar-new-1.wav", 25, 0, 1.0)
-slot_7_2 = Slot("ac-guitar-new-2.wav", 25, 0, 1.0)
-sequence_7 = Sequence()
-sequence_7.slots = [slot_7_1, slot_7_2]
-sequences.append(sequence_7)
+sequences = load_sequences(sequences_root_path + "sequence-1.json")
+# write_sequences(sequences, "/media/matt/1234-5678/sequences/sequence-1.json")
 
 #choose an external sync signal (true) or use the internal one (false)
 sync_in = False
